@@ -28,8 +28,10 @@ export default function Canvas() {
   const [isPanning, setIsPanning] = useState(false)
   const [isDrawing, setIsDrawing] = useState(false)
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
+  const [didDrag, setDidDrag] = useState(false)
   const [showGrid, setShowGrid] = useState(true)
   const [paintedThisStroke, setPaintedThisStroke] = useState<Set<string>>(new Set())
+  const [selectedPixel, setSelectedPixel] = useState<Pixel | null>(null)
   
   useEffect(() => {
     const interval = setInterval(() => {
@@ -200,10 +202,20 @@ export default function Canvas() {
   }
 
   const handleMouseDown = (e: React.MouseEvent) => {
+    setDidDrag(false)
+    
     if (e.button === 2 || e.ctrlKey || e.metaKey) {
       // Right click or Ctrl/Cmd+click = pan mode
       setIsPanning(true)
       setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y })
+    } else if (e.altKey) {
+      // Alt+click = inspect pixel
+      const coords = getPixelCoords(e)
+      if (coords) {
+        const key = `${coords.x},${coords.y}`
+        const pixel = pixels.get(key)
+        setSelectedPixel(pixel || null)
+      }
     } else {
       // Left click = draw mode
       setIsDrawing(true)
@@ -215,20 +227,35 @@ export default function Canvas() {
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (isPanning) {
+      setDidDrag(true)
       setPan({
         x: e.clientX - dragStart.x,
         y: e.clientY - dragStart.y
       })
     } else if (isDrawing) {
+      setDidDrag(true)
       const coords = getPixelCoords(e)
       if (coords) paintPixel(coords.x, coords.y)
     }
   }
 
-  const handleMouseUp = () => {
+  const handleMouseUp = (e: React.MouseEvent) => {
+    // If it was a single click (no drag), inspect the pixel
+    if (!didDrag && !isPanning && isDrawing) {
+      const coords = getPixelCoords(e)
+      if (coords) {
+        const key = `${coords.x},${coords.y}`
+        const pixel = pixels.get(key)
+        if (pixel) {
+          setSelectedPixel(pixel)
+        }
+      }
+    }
+    
     setIsPanning(false)
     setIsDrawing(false)
     setPaintedThisStroke(new Set())
+    setDidDrag(false)
   }
 
   const handleWheel = (e: React.WheelEvent) => {
@@ -383,9 +410,50 @@ export default function Canvas() {
             {showGrid ? '✓ Grid On' : 'Grid Off'}
           </button>
 
+          {/* Pixel Inspector */}
+          {selectedPixel && (
+            <div className="bg-gradient-to-br from-purple-50 to-blue-50 p-4 rounded-lg border-2 border-purple-300">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-bold text-purple-900">🔍 Pixel Info</h3>
+                <button
+                  onClick={() => setSelectedPixel(null)}
+                  className="text-gray-500 hover:text-gray-700 font-bold text-lg"
+                >
+                  ✕
+                </button>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <div 
+                    className="w-8 h-8 rounded border-2 border-gray-300"
+                    style={{ backgroundColor: selectedPixel.color }}
+                  />
+                  <div>
+                    <p className="text-xs font-semibold text-gray-700">Color</p>
+                    <p className="text-sm font-mono font-bold text-gray-900">{selectedPixel.color}</p>
+                  </div>
+                </div>
+                
+                <div>
+                  <p className="text-xs font-semibold text-gray-700">Position</p>
+                  <p className="text-sm font-mono text-gray-900">({selectedPixel.x}, {selectedPixel.y})</p>
+                </div>
+                
+                <div>
+                  <p className="text-xs font-semibold text-gray-700">Placed</p>
+                  <p className="text-sm text-gray-900">
+                    {new Date(selectedPixel.placed_at).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Instructions */}
           <div className="text-sm text-gray-800 space-y-1 bg-blue-50 p-3 rounded-lg border border-blue-200">
             <p className="font-semibold text-blue-900">🎨 Click & drag to paint</p>
+            <p className="text-gray-700">👆 Single click on pixel to inspect</p>
             <p className="text-gray-700">🖱️ Right-click + drag to pan</p>
             <p className="text-gray-700">🔍 Scroll to zoom</p>
           </div>
