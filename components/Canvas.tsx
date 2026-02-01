@@ -89,11 +89,11 @@ export default function Canvas() {
     ctx.fillStyle = '#FFFFFF'
     ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE)
 
-    // THICK visible grid
+    // Visible grid - thin lines that don't obscure pixels
     if (showGrid) {
-      // 1x1 pixel grid - THICK lines so they're actually visible
-      ctx.strokeStyle = '#D0D0D0'
-      ctx.lineWidth = 2  // Super thick so you can see it
+      // 1x1 pixel grid - thin gray lines
+      ctx.strokeStyle = '#E0E0E0'
+      ctx.lineWidth = 0.15
       
       for (let i = 0; i <= CANVAS_SIZE; i++) {
         ctx.beginPath()
@@ -107,9 +107,9 @@ export default function Canvas() {
         ctx.stroke()
       }
       
-      // Even thicker every 10 pixels
-      ctx.strokeStyle = '#999999'
-      ctx.lineWidth = 3
+      // Slightly thicker every 10 pixels for reference
+      ctx.strokeStyle = '#BBBBBB'
+      ctx.lineWidth = 0.4
       for (let i = 0; i <= CANVAS_SIZE; i += 10) {
         ctx.beginPath()
         ctx.moveTo(i, 0)
@@ -353,7 +353,7 @@ export default function Canvas() {
 
       {/* Canvas */}
       <div 
-        className="flex-1 overflow-hidden flex items-center justify-center bg-gray-100"
+        className="flex-1 overflow-hidden flex items-center justify-center bg-white"
         style={{ cursor: isPanning ? 'move' : 'crosshair' }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
