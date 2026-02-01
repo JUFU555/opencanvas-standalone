@@ -10,24 +10,24 @@ const ENERGY_REGEN_MS = 2000
 
 const PRESET_COLORS = [
   '#000000', '#FFFFFF', '#FF0000', '#00FF00', '#0000FF',
-  '#FFFF00', '#FF00FF', '#00FFFF', '#FFA500', '#800080'
+  '#FFFF00', '#FF00FF', '#00FFFF', '#FFA500', '#800080',
+  '#8B4513', '#FFB6C1', '#98FB98', '#87CEEB', '#DDA0DD'
 ]
 
 export default function Canvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
   const [pixels, setPixels] = useState<Map<string, Pixel>>(new Map())
   const [energy, setEnergy] = useState(MAX_ENERGY)
   const [selectedColor, setSelectedColor] = useState('#000000')
+  const [customColor, setCustomColor] = useState('#000000')
   const [showColorPicker, setShowColorPicker] = useState(false)
   const [pendingPixel, setPendingPixel] = useState<{ x: number; y: number } | null>(null)
-  const [zoom, setZoom] = useState(10)
+  const [zoom, setZoom] = useState(20)
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [isDragging, setIsDragging] = useState(false)
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
   const [showGrid, setShowGrid] = useState(true)
   
-  // Energy regeneration
   useEffect(() => {
     const interval = setInterval(() => {
       setEnergy(prev => Math.min(prev + 1, MAX_ENERGY))
@@ -35,7 +35,6 @@ export default function Canvas() {
     return () => clearInterval(interval)
   }, [])
 
-  // Load initial pixels
   useEffect(() => {
     loadPixels()
     subscribeToPixels()
@@ -79,7 +78,7 @@ export default function Canvas() {
     }
   }
 
-  // Render canvas
+  // Render canvas with proper grid alignment
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -87,37 +86,41 @@ export default function Canvas() {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
+    // White background
     ctx.fillStyle = '#FFFFFF'
     ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE)
 
-    // Always draw grid (thicker lines)
+    // Draw grid - ALIGNED to pixel boundaries
     if (showGrid) {
-      ctx.strokeStyle = '#E0E0E0'
-      ctx.lineWidth = 0.5
-      for (let i = 0; i <= CANVAS_SIZE; i += 10) {
+      ctx.strokeStyle = '#E5E5E5'
+      ctx.lineWidth = 0.05
+      
+      // Draw grid lines at every pixel boundary
+      for (let i = 0; i <= CANVAS_SIZE; i++) {
         ctx.beginPath()
         ctx.moveTo(i, 0)
         ctx.lineTo(i, CANVAS_SIZE)
         ctx.stroke()
+        
         ctx.beginPath()
         ctx.moveTo(0, i)
         ctx.lineTo(CANVAS_SIZE, i)
         ctx.stroke()
       }
-      // Finer grid at high zoom
-      if (zoom >= 8) {
-        ctx.strokeStyle = '#F0F0F0'
-        ctx.lineWidth = 0.2
-        for (let i = 0; i <= CANVAS_SIZE; i += 1) {
-          ctx.beginPath()
-          ctx.moveTo(i, 0)
-          ctx.lineTo(i, CANVAS_SIZE)
-          ctx.stroke()
-          ctx.beginPath()
-          ctx.moveTo(0, i)
-          ctx.lineTo(CANVAS_SIZE, i)
-          ctx.stroke()
-        }
+      
+      // Thicker lines every 10 pixels
+      ctx.strokeStyle = '#CCCCCC'
+      ctx.lineWidth = 0.2
+      for (let i = 0; i <= CANVAS_SIZE; i += 10) {
+        ctx.beginPath()
+        ctx.moveTo(i, 0)
+        ctx.lineTo(i, CANVAS_SIZE)
+        ctx.stroke()
+        
+        ctx.beginPath()
+        ctx.moveTo(0, i)
+        ctx.lineTo(CANVAS_SIZE, i)
+        ctx.stroke()
       }
     }
 
@@ -126,7 +129,7 @@ export default function Canvas() {
       ctx.fillStyle = pixel.color
       ctx.fillRect(pixel.x, pixel.y, PIXEL_SIZE, PIXEL_SIZE)
     })
-  }, [pixels, showGrid, zoom])
+  }, [pixels, showGrid])
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (isDragging) return
@@ -204,10 +207,9 @@ export default function Canvas() {
 
   return (
     <div className="flex flex-col md:flex-row h-screen bg-gray-50">
-      {/* Sidebar (Desktop) / Top bar (Mobile) */}
-      <div className="w-full md:w-80 bg-white border-b md:border-r border-gray-200 p-4 md:p-6 overflow-y-auto">
+      {/* Sidebar */}
+      <div className="w-full md:w-80 bg-white border-b md:border-r border-gray-200 p-6 overflow-y-auto">
         <div className="space-y-6">
-          {/* Title */}
           <div>
             <h1 className="text-2xl font-bold text-gray-900">OpenCanvas</h1>
             <p className="text-sm text-gray-500">Collaborative Pixel Art</p>
@@ -230,25 +232,68 @@ export default function Canvas() {
 
           {/* Color Palette */}
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-2">Color</label>
-            <div className="grid grid-cols-5 gap-2 mb-3">
+            <label className="text-sm font-medium text-gray-700 block mb-3">Color Palette</label>
+            <div className="grid grid-cols-5 gap-2">
               {PRESET_COLORS.map(color => (
                 <button
                   key={color}
                   onClick={() => setSelectedColor(color)}
-                  className={`w-full aspect-square rounded border-2 transition-all ${
-                    selectedColor === color ? 'border-blue-500 scale-110' : 'border-gray-300'
+                  className={`w-full aspect-square rounded-lg border-2 transition-all hover:scale-110 ${
+                    selectedColor === color 
+                      ? 'border-blue-500 ring-2 ring-blue-200' 
+                      : 'border-gray-300 hover:border-gray-400'
                   }`}
                   style={{ backgroundColor: color }}
+                  title={color}
                 />
               ))}
             </div>
-            <input
-              type="color"
-              value={selectedColor}
-              onChange={(e) => setSelectedColor(e.target.value)}
-              className="w-full h-10 rounded cursor-pointer"
-            />
+            
+            {/* Custom Color */}
+            <div className="mt-4">
+              <label className="text-sm font-medium text-gray-700 block mb-2">Custom Color</label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <input
+                    type="color"
+                    value={customColor}
+                    onChange={(e) => {
+                      setCustomColor(e.target.value)
+                      setSelectedColor(e.target.value)
+                    }}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  <div 
+                    className="w-full h-12 rounded-lg border-2 border-gray-300 cursor-pointer"
+                    style={{ backgroundColor: customColor }}
+                  />
+                </div>
+                <input
+                  type="text"
+                  value={customColor}
+                  onChange={(e) => {
+                    setCustomColor(e.target.value)
+                    setSelectedColor(e.target.value)
+                  }}
+                  className="w-24 px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono"
+                  placeholder="#000000"
+                />
+              </div>
+            </div>
+
+            {/* Current Color */}
+            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-3">
+                <div 
+                  className="w-8 h-8 rounded border-2 border-gray-300"
+                  style={{ backgroundColor: selectedColor }}
+                />
+                <div>
+                  <p className="text-xs text-gray-500">Selected</p>
+                  <p className="text-sm font-mono font-medium">{selectedColor}</p>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Zoom */}
@@ -259,13 +304,13 @@ export default function Canvas() {
             <div className="flex gap-2">
               <button
                 onClick={() => setZoom(prev => Math.max(1, prev - 2))}
-                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded font-medium flex-1"
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium flex-1 transition-colors"
               >
                 −
               </button>
               <button
                 onClick={() => setZoom(prev => Math.min(50, prev + 2))}
-                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded font-medium flex-1"
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium flex-1 transition-colors"
               >
                 +
               </button>
@@ -275,7 +320,7 @@ export default function Canvas() {
           {/* Grid Toggle */}
           <button
             onClick={() => setShowGrid(!showGrid)}
-            className={`w-full py-2 px-4 rounded font-medium transition-colors ${
+            className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${
               showGrid 
                 ? 'bg-blue-500 text-white hover:bg-blue-600' 
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -285,7 +330,7 @@ export default function Canvas() {
           </button>
 
           {/* Instructions */}
-          <div className="text-sm text-gray-600 space-y-1 bg-gray-50 p-3 rounded">
+          <div className="text-sm text-gray-600 space-y-1 bg-gray-50 p-3 rounded-lg">
             <p>🎨 Click pixel to paint</p>
             <p>🖱️ Drag to pan</p>
             <p>🔍 Scroll to zoom</p>
@@ -295,7 +340,6 @@ export default function Canvas() {
 
       {/* Canvas */}
       <div 
-        ref={containerRef}
         className="flex-1 overflow-hidden flex items-center justify-center bg-gray-100 cursor-move"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -316,22 +360,17 @@ export default function Canvas() {
         />
       </div>
 
-      {/* Color Picker Modal */}
+      {/* Simplified modal - just confirm */}
       {showColorPicker && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Place Pixel</h3>
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Place Pixel?</h3>
             <div className="mb-4">
               <div 
-                className="w-full h-20 rounded-lg border-2 border-gray-300 mb-3"
+                className="w-full h-24 rounded-xl border-4 border-gray-200"
                 style={{ backgroundColor: selectedColor }}
               />
-              <input
-                type="color"
-                value={selectedColor}
-                onChange={(e) => setSelectedColor(e.target.value)}
-                className="w-full h-12 rounded-lg cursor-pointer"
-              />
+              <p className="text-center mt-2 font-mono text-sm text-gray-600">{selectedColor}</p>
             </div>
             <div className="flex gap-2">
               <button
