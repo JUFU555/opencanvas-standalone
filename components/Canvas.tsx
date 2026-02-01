@@ -115,7 +115,7 @@ export default function Canvas() {
     }
   }
 
-  // Render with THICK visible grid
+  // Render with zoom-aware grid
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -126,28 +126,37 @@ export default function Canvas() {
     ctx.fillStyle = '#FFFFFF'
     ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE)
 
-    // Visible grid - thin lines that don't obscure pixels
+    // Zoom-aware grid - only show when it makes sense
     if (showGrid) {
-      // 1x1 pixel grid - thin gray lines
-      ctx.strokeStyle = '#E0E0E0'
-      ctx.lineWidth = 0.15
+      // Calculate grid spacing based on zoom level
+      // At low zoom: show every 10 or 100 pixels
+      // At high zoom: show every pixel
+      let gridSpacing = 1
+      let lineWidth = 0.05
+      let strokeStyle = '#F0F0F0'
       
-      for (let i = 0; i <= CANVAS_SIZE; i++) {
-        ctx.beginPath()
-        ctx.moveTo(i, 0)
-        ctx.lineTo(i, CANVAS_SIZE)
-        ctx.stroke()
-        
-        ctx.beginPath()
-        ctx.moveTo(0, i)
-        ctx.lineTo(CANVAS_SIZE, i)
-        ctx.stroke()
+      if (zoom < 5) {
+        // Very zoomed out - show major grid only (every 100 pixels)
+        gridSpacing = 100
+        lineWidth = 0.1
+        strokeStyle = '#DDDDDD'
+      } else if (zoom < 10) {
+        // Zoomed out - show every 10 pixels
+        gridSpacing = 10
+        lineWidth = 0.08
+        strokeStyle = '#E8E8E8'
+      } else if (zoom < 20) {
+        // Medium zoom - show every 5 pixels
+        gridSpacing = 5
+        lineWidth = 0.06
+        strokeStyle = '#F0F0F0'
       }
+      // else gridSpacing = 1 (every pixel at high zoom)
       
-      // Slightly thicker every 10 pixels for reference
-      ctx.strokeStyle = '#BBBBBB'
-      ctx.lineWidth = 0.4
-      for (let i = 0; i <= CANVAS_SIZE; i += 10) {
+      ctx.strokeStyle = strokeStyle
+      ctx.lineWidth = lineWidth
+      
+      for (let i = 0; i <= CANVAS_SIZE; i += gridSpacing) {
         ctx.beginPath()
         ctx.moveTo(i, 0)
         ctx.lineTo(i, CANVAS_SIZE)
@@ -165,7 +174,7 @@ export default function Canvas() {
       ctx.fillStyle = pixel.color
       ctx.fillRect(pixel.x, pixel.y, PIXEL_SIZE, PIXEL_SIZE)
     })
-  }, [pixels, showGrid])
+  }, [pixels, showGrid, zoom])
 
   const getPixelCoords = (e: React.MouseEvent) => {
     const canvas = canvasRef.current
