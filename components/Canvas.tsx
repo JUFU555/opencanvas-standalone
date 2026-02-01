@@ -462,7 +462,7 @@ export default function Canvas() {
 
       {/* Canvas */}
       <div 
-        className="flex-1 overflow-hidden flex items-center justify-center bg-white"
+        className="flex-1 overflow-hidden flex items-start justify-center bg-gradient-to-br from-gray-100 via-gray-50 to-gray-100 pt-8 md:pt-16"
         style={{ cursor: isPanning ? 'move' : 'crosshair' }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
