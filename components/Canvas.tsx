@@ -115,7 +115,7 @@ export default function Canvas() {
     }
   }
 
-  // Render with zoom-aware grid
+  // Render canvas (pixels only, no grid)
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -126,55 +126,20 @@ export default function Canvas() {
     ctx.fillStyle = '#FFFFFF'
     ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE)
 
-    // Zoom-aware grid - only show when it makes sense
-    if (showGrid) {
-      // Calculate grid spacing based on zoom level
-      // At low zoom: show every 10 or 100 pixels
-      // At high zoom: show every pixel
-      let gridSpacing = 1
-      let lineWidth = 0.05
-      let strokeStyle = '#F0F0F0'
-      
-      if (zoom < 5) {
-        // Very zoomed out - show major grid only (every 100 pixels)
-        gridSpacing = 100
-        lineWidth = 0.1
-        strokeStyle = '#DDDDDD'
-      } else if (zoom < 10) {
-        // Zoomed out - show every 10 pixels
-        gridSpacing = 10
-        lineWidth = 0.08
-        strokeStyle = '#E8E8E8'
-      } else if (zoom < 20) {
-        // Medium zoom - show every 5 pixels
-        gridSpacing = 5
-        lineWidth = 0.06
-        strokeStyle = '#F0F0F0'
-      }
-      // else gridSpacing = 1 (every pixel at high zoom)
-      
-      ctx.strokeStyle = strokeStyle
-      ctx.lineWidth = lineWidth
-      
-      for (let i = 0; i <= CANVAS_SIZE; i += gridSpacing) {
-        ctx.beginPath()
-        ctx.moveTo(i, 0)
-        ctx.lineTo(i, CANVAS_SIZE)
-        ctx.stroke()
-        
-        ctx.beginPath()
-        ctx.moveTo(0, i)
-        ctx.lineTo(CANVAS_SIZE, i)
-        ctx.stroke()
-      }
-    }
-
     // Draw pixels
     pixels.forEach((pixel) => {
       ctx.fillStyle = pixel.color
       ctx.fillRect(pixel.x, pixel.y, PIXEL_SIZE, PIXEL_SIZE)
     })
-  }, [pixels, showGrid, zoom])
+  }, [pixels])
+
+  // Calculate grid spacing based on zoom
+  const getGridSpacing = () => {
+    if (zoom < 5) return 100
+    if (zoom < 10) return 10
+    if (zoom < 20) return 5
+    return 1
+  }
 
   const getPixelCoords = (e: React.MouseEvent) => {
     const canvas = canvasRef.current
@@ -433,16 +398,45 @@ export default function Canvas() {
         onWheel={handleWheel}
         onContextMenu={(e) => e.preventDefault()}
       >
-        <canvas
-          ref={canvasRef}
-          width={CANVAS_SIZE}
-          height={CANVAS_SIZE}
-          className="shadow-2xl"
-          style={{
-            transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
-            imageRendering: 'pixelated'
-          }}
-        />
+        <div className="relative" style={{
+          transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
+        }}>
+          <canvas
+            ref={canvasRef}
+            width={CANVAS_SIZE}
+            height={CANVAS_SIZE}
+            className="shadow-2xl"
+            style={{
+              imageRendering: 'pixelated',
+              display: 'block'
+            }}
+          />
+          {showGrid && (
+            <svg
+              width={CANVAS_SIZE}
+              height={CANVAS_SIZE}
+              className="absolute top-0 left-0 pointer-events-none"
+              style={{ imageRendering: 'pixelated' }}
+            >
+              <defs>
+                <pattern
+                  id="grid"
+                  width={getGridSpacing()}
+                  height={getGridSpacing()}
+                  patternUnits="userSpaceOnUse"
+                >
+                  <path
+                    d={`M ${getGridSpacing()} 0 L 0 0 0 ${getGridSpacing()}`}
+                    fill="none"
+                    stroke="#E5E5E5"
+                    strokeWidth="0.5"
+                  />
+                </pattern>
+              </defs>
+              <rect width={CANVAS_SIZE} height={CANVAS_SIZE} fill="url(#grid)" />
+            </svg>
+          )}
+        </div>
       </div>
     </div>
   )
