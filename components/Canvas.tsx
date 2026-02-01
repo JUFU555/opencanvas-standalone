@@ -89,13 +89,39 @@ export default function Canvas() {
   const loadPixels = async () => {
     const { data } = await supabase
       .from('pixels')
-      .select('*')
+      .select(`
+        *,
+        user_profiles (
+          username,
+          country,
+          twitter,
+          instagram,
+          tiktok,
+          website
+        )
+      `)
       .limit(1000000)
     
     if (data) {
       const pixelMap = new Map<string, Pixel>()
-      data.forEach((pixel: Pixel) => {
-        pixelMap.set(`${pixel.x},${pixel.y}`, pixel)
+      data.forEach((pixel: any) => {
+        // Flatten user profile data
+        const pixelData: Pixel = {
+          x: pixel.x,
+          y: pixel.y,
+          color: pixel.color,
+          placed_at: pixel.placed_at,
+          user_id: pixel.user_id,
+          username: pixel.user_profiles?.username,
+          user_country: pixel.user_profiles?.country,
+          user_socials: pixel.user_profiles ? {
+            twitter: pixel.user_profiles.twitter,
+            instagram: pixel.user_profiles.instagram,
+            tiktok: pixel.user_profiles.tiktok,
+            website: pixel.user_profiles.website
+          } : undefined
+        }
+        pixelMap.set(`${pixel.x},${pixel.y}`, pixelData)
       })
       setPixels(pixelMap)
     }
@@ -106,12 +132,41 @@ export default function Canvas() {
       .channel('pixels-channel')
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'pixels' },
-        (payload) => {
+        async (payload) => {
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            const pixel = payload.new as Pixel
+            const pixel = payload.new as any
+            
+            // Fetch user profile data if user_id exists
+            let pixelData: Pixel = {
+              x: pixel.x,
+              y: pixel.y,
+              color: pixel.color,
+              placed_at: pixel.placed_at,
+              user_id: pixel.user_id
+            }
+            
+            if (pixel.user_id) {
+              const { data: profile } = await supabase
+                .from('user_profiles')
+                .select('username, country, twitter, instagram, tiktok, website')
+                .eq('id', pixel.user_id)
+                .single()
+              
+              if (profile) {
+                pixelData.username = profile.username
+                pixelData.user_country = profile.country
+                pixelData.user_socials = {
+                  twitter: profile.twitter,
+                  instagram: profile.instagram,
+                  tiktok: profile.tiktok,
+                  website: profile.website
+                }
+              }
+            }
+            
             setPixels(prev => {
               const newMap = new Map(prev)
-              newMap.set(`${pixel.x},${pixel.y}`, pixel)
+              newMap.set(`${pixel.x},${pixel.y}`, pixelData)
               return newMap
             })
           }
