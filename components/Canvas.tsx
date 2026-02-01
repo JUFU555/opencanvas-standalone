@@ -14,12 +14,15 @@ const PRESET_COLORS = [
   '#8B4513', '#FFB6C1', '#98FB98', '#87CEEB', '#DDA0DD'
 ]
 
+const MAX_RECENT_COLORS = 10
+
 export default function Canvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [pixels, setPixels] = useState<Map<string, Pixel>>(new Map())
   const [energy, setEnergy] = useState(MAX_ENERGY)
   const [selectedColor, setSelectedColor] = useState('#000000')
   const [customColor, setCustomColor] = useState('#000000')
+  const [recentColors, setRecentColors] = useState<string[]>([])
   const [zoom, setZoom] = useState(20)
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [isPanning, setIsPanning] = useState(false)
@@ -38,7 +41,41 @@ export default function Canvas() {
   useEffect(() => {
     loadPixels()
     subscribeToPixels()
+    loadRecentColors()
   }, [])
+
+  const loadRecentColors = () => {
+    try {
+      const stored = localStorage.getItem('recentColors')
+      if (stored) {
+        setRecentColors(JSON.parse(stored))
+      }
+    } catch (e) {
+      console.error('Failed to load recent colors:', e)
+    }
+  }
+
+  const addRecentColor = (color: string) => {
+    // Skip if it's already in preset colors or already first in recent
+    if (PRESET_COLORS.includes(color.toUpperCase()) || recentColors[0] === color) {
+      return
+    }
+
+    setRecentColors(prev => {
+      // Remove if already exists, then add to front
+      const filtered = prev.filter(c => c !== color)
+      const updated = [color, ...filtered].slice(0, MAX_RECENT_COLORS)
+      
+      // Save to localStorage
+      try {
+        localStorage.setItem('recentColors', JSON.stringify(updated))
+      } catch (e) {
+        console.error('Failed to save recent colors:', e)
+      }
+      
+      return updated
+    })
+  }
 
   const loadPixels = async () => {
     const { data } = await supabase
@@ -152,6 +189,9 @@ export default function Canvas() {
     // Skip if already painted this stroke or no energy
     if (paintedThisStroke.has(key) || energy < 1) return
     
+    // Add to recent colors when actually used (not just selected)
+    addRecentColor(selectedColor)
+    
     // Optimistic update
     setPixels(prev => {
       const newMap = new Map(prev)
@@ -261,6 +301,28 @@ export default function Canvas() {
                 />
               ))}
             </div>
+
+            {/* Recent Colors */}
+            {recentColors.length > 0 && (
+              <div className="mt-4">
+                <label className="text-sm font-semibold text-gray-800 block mb-2">Recent Colors</label>
+                <div className="grid grid-cols-5 gap-2">
+                  {recentColors.map((color, idx) => (
+                    <button
+                      key={`${color}-${idx}`}
+                      onClick={() => setSelectedColor(color)}
+                      className={`w-full aspect-square rounded-lg border-2 transition-all hover:scale-110 ${
+                        selectedColor === color 
+                          ? 'border-blue-500 ring-2 ring-blue-200' 
+                          : 'border-gray-300 hover:border-gray-400'
+                      }`}
+                      style={{ backgroundColor: color }}
+                      title={color}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
             
             {/* Custom Color */}
             <div className="mt-4">
