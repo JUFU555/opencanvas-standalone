@@ -32,6 +32,8 @@ export default function Canvas() {
   const [didDrag, setDidDrag] = useState(false)
   const [touchStartTime, setTouchStartTime] = useState(0)
   const [touchStartPos, setTouchStartPos] = useState({ x: 0, y: 0 })
+  const [isTwoFingerPan, setIsTwoFingerPan] = useState(false)
+  const lastTouchDistance = useRef(0)
   const [showGrid, setShowGrid] = useState(true)
   const [paintedThisStroke, setPaintedThisStroke] = useState<Set<string>>(new Set())
   const [selectedPixel, setSelectedPixel] = useState<Pixel | null>(null)
@@ -150,7 +152,17 @@ export default function Canvas() {
 
   const getGridStrokeWidth = () => {
     // Stroke needs to be inverse of zoom to maintain constant visual thickness
-    return 1 / zoom
+    // At very high zoom, make it slightly thicker to stay visible
+    const baseWidth = 1 / zoom
+    return Math.max(baseWidth, 0.02) // Minimum 0.02 to stay visible
+  }
+
+  const getGridColor = () => {
+    // Darker grid at higher zoom levels for better visibility
+    if (zoom > 30) return '#999999'
+    if (zoom > 20) return '#AAAAAA'
+    if (zoom > 10) return '#BBBBBB'
+    return '#CCCCCC'
   }
 
   const getPixelCoords = (e: React.MouseEvent) => {
@@ -273,7 +285,23 @@ export default function Canvas() {
     setTouchStartPos({ x: touch.clientX, y: touch.clientY })
     setDidDrag(false)
     
-    if (e.touches.length === 1) {
+    if (e.touches.length === 2) {
+      // Two-finger pan mode
+      e.preventDefault()
+      setIsTwoFingerPan(true)
+      setIsPanning(true)
+      setDragStart({ x: touch.clientX - pan.x, y: touch.clientY - pan.y })
+      
+      // Calculate initial distance for pinch-to-zoom
+      const touch1 = e.touches[0]
+      const touch2 = e.touches[1]
+      const distance = Math.hypot(
+        touch2.clientX - touch1.clientX,
+        touch2.clientY - touch1.clientY
+      )
+      lastTouchDistance.current = distance
+    } else if (e.touches.length === 1) {
+      // Single finger paint mode
       const mouseEvent = new MouseEvent('mousedown', {
         clientX: touch.clientX,
         clientY: touch.clientY,
@@ -284,7 +312,33 @@ export default function Canvas() {
   }
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (e.touches.length === 1) {
+    if (e.touches.length === 2) {
+      // Two-finger pan and pinch-to-zoom
+      e.preventDefault()
+      const touch1 = e.touches[0]
+      const touch2 = e.touches[1]
+      
+      // Pan
+      const midX = (touch1.clientX + touch2.clientX) / 2
+      const midY = (touch1.clientY + touch2.clientY) / 2
+      setPan({
+        x: midX - dragStart.x,
+        y: midY - dragStart.y
+      })
+      
+      // Pinch-to-zoom
+      const distance = Math.hypot(
+        touch2.clientX - touch1.clientX,
+        touch2.clientY - touch1.clientY
+      )
+      if (lastTouchDistance.current > 0) {
+        const delta = distance / lastTouchDistance.current
+        setZoom(prev => Math.max(1, Math.min(50, prev * delta)))
+      }
+      lastTouchDistance.current = distance
+      setDidDrag(true)
+    } else if (e.touches.length === 1 && !isTwoFingerPan) {
+      // Single finger paint
       const touch = e.touches[0]
       const distance = Math.hypot(
         touch.clientX - touchStartPos.x,
@@ -304,8 +358,14 @@ export default function Canvas() {
   const handleTouchEnd = (e: React.TouchEvent) => {
     const touchDuration = Date.now() - touchStartTime
     
+    // Reset two-finger pan mode
+    if (e.touches.length < 2) {
+      setIsTwoFingerPan(false)
+      lastTouchDistance.current = 0
+    }
+    
     // Quick tap (< 300ms) without significant drag = inspect pixel
-    if (touchDuration < 300 && !didDrag && e.changedTouches.length === 1) {
+    if (touchDuration < 300 && !didDrag && e.changedTouches.length === 1 && !isTwoFingerPan) {
       const touch = e.changedTouches[0]
       const coords = getPixelCoords({ clientX: touch.clientX, clientY: touch.clientY } as any)
       if (coords) {
@@ -541,6 +601,7 @@ export default function Canvas() {
             <p className="text-gray-700 hidden md:block">🔍 Alt/Option + click to inspect pixel</p>
             <p className="text-gray-700 md:hidden">🔍 Quick tap to inspect pixel</p>
             <p className="text-gray-700 hidden md:block">🖱️ Right-click + drag to pan</p>
+            <p className="text-gray-700 md:hidden">✌️ Two-finger drag to pan</p>
             <p className="text-gray-700">📏 <span className="hidden md:inline">Scroll</span><span className="md:hidden">Pinch</span> to zoom</p>
           </div>
         </div>
@@ -590,7 +651,7 @@ export default function Canvas() {
                   <path
                     d={`M ${getGridSpacing()} 0 L 0 0 0 ${getGridSpacing()}`}
                     fill="none"
-                    stroke="#CCCCCC"
+                    stroke={getGridColor()}
                     strokeWidth={getGridStrokeWidth()}
                   />
                 </pattern>
