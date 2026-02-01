@@ -90,12 +90,12 @@ export default function Canvas() {
     ctx.fillStyle = '#FFFFFF'
     ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE)
 
-    // Draw grid - ALIGNED to pixel boundaries
+    // Draw grid - ALIGNED to pixel boundaries with VISIBLE lines
     if (showGrid) {
-      ctx.strokeStyle = '#E5E5E5'
-      ctx.lineWidth = 0.05
+      // Fine grid - every pixel
+      ctx.strokeStyle = '#DDDDDD'
+      ctx.lineWidth = 0.5  // Thicker so it's actually visible
       
-      // Draw grid lines at every pixel boundary
       for (let i = 0; i <= CANVAS_SIZE; i++) {
         ctx.beginPath()
         ctx.moveTo(i, 0)
@@ -108,9 +108,9 @@ export default function Canvas() {
         ctx.stroke()
       }
       
-      // Thicker lines every 10 pixels
-      ctx.strokeStyle = '#CCCCCC'
-      ctx.lineWidth = 0.2
+      // Thicker lines every 10 pixels for reference
+      ctx.strokeStyle = '#AAAAAA'
+      ctx.lineWidth = 1.5
       for (let i = 0; i <= CANVAS_SIZE; i += 10) {
         ctx.beginPath()
         ctx.moveTo(i, 0)
