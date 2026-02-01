@@ -209,7 +209,7 @@ export default function Canvas() {
       setIsPanning(true)
       setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y })
     } else if (e.altKey) {
-      // Alt+click = inspect pixel
+      // Alt+click = inspect pixel (non-destructive)
       const coords = getPixelCoords(e)
       if (coords) {
         const key = `${coords.x},${coords.y}`
@@ -217,11 +217,9 @@ export default function Canvas() {
         setSelectedPixel(pixel || null)
       }
     } else {
-      // Left click = draw mode
+      // Left click = draw mode (starts drawing)
       setIsDrawing(true)
       setPaintedThisStroke(new Set())
-      const coords = getPixelCoords(e)
-      if (coords) paintPixel(coords.x, coords.y)
     }
   }
 
@@ -239,19 +237,7 @@ export default function Canvas() {
     }
   }
 
-  const handleMouseUp = (e: React.MouseEvent) => {
-    // If it was a single click (no drag), inspect the pixel
-    if (!didDrag && !isPanning && isDrawing) {
-      const coords = getPixelCoords(e)
-      if (coords) {
-        const key = `${coords.x},${coords.y}`
-        const pixel = pixels.get(key)
-        if (pixel) {
-          setSelectedPixel(pixel)
-        }
-      }
-    }
-    
+  const handleMouseUp = () => {
     setIsPanning(false)
     setIsDrawing(false)
     setPaintedThisStroke(new Set())
@@ -453,9 +439,9 @@ export default function Canvas() {
           {/* Instructions */}
           <div className="text-sm text-gray-800 space-y-1 bg-blue-50 p-3 rounded-lg border border-blue-200">
             <p className="font-semibold text-blue-900">🎨 Click & drag to paint</p>
-            <p className="text-gray-700">👆 Single click on pixel to inspect</p>
+            <p className="text-gray-700">🔍 Alt/Option + click to inspect pixel</p>
             <p className="text-gray-700">🖱️ Right-click + drag to pan</p>
-            <p className="text-gray-700">🔍 Scroll to zoom</p>
+            <p className="text-gray-700">📏 Scroll to zoom</p>
           </div>
         </div>
       </div>
