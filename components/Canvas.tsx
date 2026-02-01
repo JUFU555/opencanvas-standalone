@@ -133,12 +133,17 @@ export default function Canvas() {
     })
   }, [pixels])
 
-  // Calculate grid spacing based on zoom
+  // Calculate grid spacing and stroke based on zoom
   const getGridSpacing = () => {
     if (zoom < 5) return 100
     if (zoom < 10) return 10
     if (zoom < 20) return 5
     return 1
+  }
+
+  const getGridStrokeWidth = () => {
+    // Stroke needs to be inverse of zoom to maintain constant visual thickness
+    return 1 / zoom
   }
 
   const getPixelCoords = (e: React.MouseEvent) => {
@@ -428,8 +433,8 @@ export default function Canvas() {
                   <path
                     d={`M ${getGridSpacing()} 0 L 0 0 0 ${getGridSpacing()}`}
                     fill="none"
-                    stroke="#E5E5E5"
-                    strokeWidth="0.5"
+                    stroke="#CCCCCC"
+                    strokeWidth={getGridStrokeWidth()}
                   />
                 </pattern>
               </defs>
