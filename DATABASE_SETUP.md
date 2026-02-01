@@ -1,30 +1,56 @@
 # Database Setup for User Profiles
 
-## Run this SQL in your Supabase SQL Editor
+## ⚠️ IMPORTANT - Run this BEFORE using the app!
 
-The SQL migration file is in `supabase-migrations.sql`.
+If you see an error like "Could not find the table 'publicuser_profiles' in the schema cache", you need to run this migration.
 
-You need to:
-1. Go to your Supabase project dashboard
-2. Click "SQL Editor" in the sidebar
-3. Paste the contents of `supabase-migrations.sql`
-4. Click "Run"
+## Step-by-Step Setup
 
-This will create:
-- `user_profiles` table to store username, country, and social media links
-- Add `user_id` foreign key to `pixels` table
-- Set up Row Level Security policies for public read, authenticated write
+1. **Open Supabase Dashboard**
+   - Go to https://supabase.com/dashboard
+   - Select your project
+
+2. **Navigate to SQL Editor**
+   - Click "SQL Editor" in the left sidebar
+   - Click "New Query"
+
+3. **Copy & Paste the Migration**
+   - Open `supabase-migrations.sql` from this repo
+   - Copy ALL the SQL code
+   - Paste it into the SQL editor
+
+4. **Run the Migration**
+   - Click "Run" or press Ctrl+Enter
+   - Wait for success message
+   - You should see "Success. No rows returned"
+
+5. **Verify Tables Created**
+   - Click "Table Editor" in sidebar
+   - You should see `user_profiles` table
+   - Check that `pixels` table now has a `user_id` column
+
+## What This Creates
+
+- **`user_profiles` table** - stores username, country, and social media links
+- **`user_id` foreign key** on `pixels` table - links pixels to creators
+- **Row Level Security policies** - public read, anyone can create/update profiles
 
 ## Testing
 
 After running the migration:
-1. The app will show a "Create Profile" button in the sidebar
-2. Users can create a profile with username (required), country, Twitter, Instagram, TikTok, and website
-3. When users paint pixels, their profile info is attached
-4. When inspecting pixels, you'll see the artist's info if they had a profile
+1. Refresh the app - error should be gone
+2. Click "Create Profile" button in the sidebar
+3. Enter username (required) and optional info
+4. Paint pixels - your profile will be attached
+5. Inspect pixels - you'll see artist info
 
-## Notes
+## Troubleshooting
 
-- Profiles are stored in localStorage for now (simple auth)
-- User ID is linked to pixels via foreign key
-- The pixel inspector shows full artist info when available
+**Still seeing schema error?**
+- Make sure you ran ALL the SQL code
+- Check Supabase logs for any error messages
+- Verify you selected the correct project
+
+**"Table already exists" error?**
+- That's fine! The migration uses `IF NOT EXISTS`
+- It will only create tables that don't exist

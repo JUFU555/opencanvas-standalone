@@ -166,7 +166,7 @@ export default function UserProfileComponent() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="your_username"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-500"
             />
           </div>
 
@@ -179,7 +179,7 @@ export default function UserProfileComponent() {
               value={country}
               onChange={(e) => setCountry(e.target.value)}
               placeholder="e.g., USA, Brazil, Japan"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-500"
             />
           </div>
 
@@ -192,7 +192,7 @@ export default function UserProfileComponent() {
               value={twitter}
               onChange={(e) => setTwitter(e.target.value)}
               placeholder="@username"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-500"
             />
           </div>
 
@@ -205,7 +205,7 @@ export default function UserProfileComponent() {
               value={instagram}
               onChange={(e) => setInstagram(e.target.value)}
               placeholder="@username"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-500"
             />
           </div>
 
@@ -218,7 +218,7 @@ export default function UserProfileComponent() {
               value={tiktok}
               onChange={(e) => setTiktok(e.target.value)}
               placeholder="@username"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-500"
             />
           </div>
 
@@ -231,7 +231,7 @@ export default function UserProfileComponent() {
               value={website}
               onChange={(e) => setWebsite(e.target.value)}
               placeholder="https://..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-500"
             />
           </div>
 
