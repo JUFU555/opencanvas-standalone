@@ -130,7 +130,7 @@ export default function Canvas() {
     })
   }, [pixels, showGrid])
 
-  const getPixelCoords = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const getPixelCoords = (e: React.MouseEvent) => {
     const canvas = canvasRef.current
     if (!canvas) return null
 
