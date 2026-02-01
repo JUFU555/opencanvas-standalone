@@ -180,7 +180,7 @@ export default function Canvas() {
       })
   }
 
-  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button === 2 || e.ctrlKey || e.metaKey) {
       // Right click or Ctrl/Cmd+click = pan mode
       setIsPanning(true)
@@ -194,7 +194,7 @@ export default function Canvas() {
     }
   }
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const handleMouseMove = (e: React.MouseEvent) => {
     if (isPanning) {
       setPan({
         x: e.clientX - dragStart.x,
