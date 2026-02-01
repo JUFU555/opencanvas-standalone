@@ -14,6 +14,7 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: "OpenCanvas - Collaborative Pixel Art",
   description: "A global canvas where anyone can paint. 1 pixel every 2 seconds. No rules. See what the internet creates.",
+  viewport: "width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes",
 };
 
 export default function RootLayout({

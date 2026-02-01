@@ -23,12 +23,14 @@ export default function Canvas() {
   const [selectedColor, setSelectedColor] = useState('#000000')
   const [customColor, setCustomColor] = useState('#000000')
   const [recentColors, setRecentColors] = useState<string[]>([])
-  const [zoom, setZoom] = useState(20)
+  const [zoom, setZoom] = useState(10) // Lower default zoom for mobile
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [isPanning, setIsPanning] = useState(false)
   const [isDrawing, setIsDrawing] = useState(false)
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
   const [didDrag, setDidDrag] = useState(false)
+  const [touchStartTime, setTouchStartTime] = useState(0)
+  const [touchStartPos, setTouchStartPos] = useState({ x: 0, y: 0 })
   const [showGrid, setShowGrid] = useState(true)
   const [paintedThisStroke, setPaintedThisStroke] = useState<Set<string>>(new Set())
   const [selectedPixel, setSelectedPixel] = useState<Pixel | null>(null)
@@ -250,12 +252,65 @@ export default function Canvas() {
     setZoom(prev => Math.max(1, Math.min(50, prev * delta)))
   }
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartTime(Date.now())
+    const touch = e.touches[0]
+    setTouchStartPos({ x: touch.clientX, y: touch.clientY })
+    setDidDrag(false)
+    
+    if (e.touches.length === 1) {
+      const mouseEvent = new MouseEvent('mousedown', {
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+        button: 0
+      }) as any
+      handleMouseDown(mouseEvent)
+    }
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      const touch = e.touches[0]
+      const distance = Math.hypot(
+        touch.clientX - touchStartPos.x,
+        touch.clientY - touchStartPos.y
+      )
+      if (distance > 5) {
+        setDidDrag(true)
+      }
+      const mouseEvent = new MouseEvent('mousemove', {
+        clientX: touch.clientX,
+        clientY: touch.clientY
+      }) as any
+      handleMouseMove(mouseEvent)
+    }
+  }
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const touchDuration = Date.now() - touchStartTime
+    
+    // Quick tap (< 300ms) without significant drag = inspect pixel
+    if (touchDuration < 300 && !didDrag && e.changedTouches.length === 1) {
+      const touch = e.changedTouches[0]
+      const coords = getPixelCoords({ clientX: touch.clientX, clientY: touch.clientY } as any)
+      if (coords) {
+        const key = `${coords.x},${coords.y}`
+        const pixel = pixels.get(key)
+        if (pixel) {
+          setSelectedPixel(pixel)
+        }
+      }
+    }
+    
+    handleMouseUp()
+  }
+
   return (
     <div className="flex flex-col md:flex-row h-screen bg-gray-50">
-      {/* Sidebar */}
-      <div className="w-full md:w-80 bg-white border-b md:border-r border-gray-200 p-6 overflow-y-auto">
-        <div className="space-y-6">
-          <div>
+      {/* Sidebar - Below canvas on mobile, left side on desktop */}
+      <div className="w-full md:w-80 bg-white border-t md:border-r md:border-t-0 border-gray-200 p-4 md:p-6 overflow-y-auto max-h-[45vh] md:max-h-none order-2 md:order-1">
+        <div className="space-y-4 md:space-y-6">
+          <div className="hidden md:block">
             <h1 className="text-2xl font-bold text-gray-900">OpenCanvas</h1>
             <p className="text-sm text-gray-600">Collaborative Pixel Art</p>
           </div>
@@ -438,23 +493,27 @@ export default function Canvas() {
 
           {/* Instructions */}
           <div className="text-sm text-gray-800 space-y-1 bg-blue-50 p-3 rounded-lg border border-blue-200">
-            <p className="font-semibold text-blue-900">🎨 Click & drag to paint</p>
-            <p className="text-gray-700">🔍 Alt/Option + click to inspect pixel</p>
-            <p className="text-gray-700">🖱️ Right-click + drag to pan</p>
-            <p className="text-gray-700">📏 Scroll to zoom</p>
+            <p className="font-semibold text-blue-900">🎨 <span className="hidden md:inline">Click &</span> Drag to paint</p>
+            <p className="text-gray-700 hidden md:block">🔍 Alt/Option + click to inspect pixel</p>
+            <p className="text-gray-700 md:hidden">🔍 Quick tap to inspect pixel</p>
+            <p className="text-gray-700 hidden md:block">🖱️ Right-click + drag to pan</p>
+            <p className="text-gray-700">📏 <span className="hidden md:inline">Scroll</span><span className="md:hidden">Pinch</span> to zoom</p>
           </div>
         </div>
       </div>
 
-      {/* Canvas */}
+      {/* Canvas - Top on mobile, right side on desktop */}
       <div 
-        className="flex-1 overflow-hidden flex items-start justify-center bg-gradient-to-br from-gray-100 via-gray-50 to-gray-100 pt-8 md:pt-16"
+        className="flex-1 overflow-hidden flex items-start justify-center bg-gradient-to-br from-gray-100 via-gray-50 to-gray-100 pt-4 md:pt-16 order-1 md:order-2"
         style={{ cursor: isPanning ? 'move' : 'crosshair' }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
         onWheel={handleWheel}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
         onContextMenu={(e) => e.preventDefault()}
       >
         <div className="relative" style={{
