@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { supabase, type Pixel } from '../lib/supabase'
+import UserProfileComponent, { useUserProfile } from './UserProfile'
 
 const CANVAS_SIZE = 1000
 const PIXEL_SIZE = 1
@@ -34,6 +35,8 @@ export default function Canvas() {
   const [showGrid, setShowGrid] = useState(true)
   const [paintedThisStroke, setPaintedThisStroke] = useState<Set<string>>(new Set())
   const [selectedPixel, setSelectedPixel] = useState<Pixel | null>(null)
+  
+  const userProfile = useUserProfile()
   
   useEffect(() => {
     const interval = setInterval(() => {
@@ -175,15 +178,26 @@ export default function Canvas() {
     // Add to recent colors when actually used (not just selected)
     addRecentColor(selectedColor)
     
+    const pixelData: Pixel = {
+      x,
+      y,
+      color: selectedColor,
+      placed_at: new Date().toISOString(),
+      user_id: userProfile?.id,
+      username: userProfile?.username,
+      user_country: userProfile?.country,
+      user_socials: userProfile ? {
+        twitter: userProfile.twitter,
+        instagram: userProfile.instagram,
+        tiktok: userProfile.tiktok,
+        website: userProfile.website
+      } : undefined
+    }
+    
     // Optimistic update
     setPixels(prev => {
       const newMap = new Map(prev)
-      newMap.set(key, {
-        x,
-        y,
-        color: selectedColor,
-        placed_at: new Date().toISOString()
-      })
+      newMap.set(key, pixelData)
       return newMap
     })
 
@@ -197,7 +211,8 @@ export default function Canvas() {
         x,
         y,
         color: selectedColor,
-        placed_at: new Date().toISOString()
+        placed_at: new Date().toISOString(),
+        user_id: userProfile?.id
       }, {
         onConflict: 'x,y'
       })
@@ -314,6 +329,9 @@ export default function Canvas() {
             <h1 className="text-2xl font-bold text-gray-900">OpenCanvas</h1>
             <p className="text-sm text-gray-600">Collaborative Pixel Art</p>
           </div>
+
+          {/* User Profile */}
+          <UserProfileComponent />
 
           {/* Energy */}
           <div>
@@ -487,6 +505,32 @@ export default function Canvas() {
                     {new Date(selectedPixel.placed_at).toLocaleString()}
                   </p>
                 </div>
+
+                {selectedPixel.username && (
+                  <div className="pt-2 border-t border-purple-200">
+                    <p className="text-xs font-semibold text-gray-700 mb-2">👤 Artist</p>
+                    <p className="text-sm font-bold text-gray-900">{selectedPixel.username}</p>
+                    {selectedPixel.user_country && (
+                      <p className="text-sm text-gray-700">📍 {selectedPixel.user_country}</p>
+                    )}
+                    {selectedPixel.user_socials && (
+                      <div className="mt-2 space-y-1">
+                        {selectedPixel.user_socials.twitter && (
+                          <p className="text-xs text-gray-700">🐦 {selectedPixel.user_socials.twitter}</p>
+                        )}
+                        {selectedPixel.user_socials.instagram && (
+                          <p className="text-xs text-gray-700">📷 {selectedPixel.user_socials.instagram}</p>
+                        )}
+                        {selectedPixel.user_socials.tiktok && (
+                          <p className="text-xs text-gray-700">🎵 {selectedPixel.user_socials.tiktok}</p>
+                        )}
+                        {selectedPixel.user_socials.website && (
+                          <p className="text-xs text-gray-700 break-all">🌐 {selectedPixel.user_socials.website}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}
